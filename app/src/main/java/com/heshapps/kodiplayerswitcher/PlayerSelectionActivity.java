@@ -2,16 +2,21 @@ package com.heshapps.kodiplayerswitcher;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.StrictMode;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
+import android.widget.Toast;
 
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -36,6 +41,14 @@ public class PlayerSelectionActivity extends PreferenceActivity {
      * shown on tablets.
      */
     private static final boolean ALWAYS_SIMPLE_PREFS = false;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
+    }
 
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
@@ -126,10 +139,21 @@ public class PlayerSelectionActivity extends PreferenceActivity {
                 preference.setSummary(prefVal);
 
                 android.util.Log.i(TAG, "Time to change player file - " + prefVal );
+
+                android.util.Log.i(TAG, "Try to get activity in context - " + preference.getContext());
+
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(preference.getContext());
+
+                PlayerCoreFactoryHandler factoryHandler = new PlayerCoreFactoryHandler(preference.getContext(),
+                    prefs.getString("factory_path", "No factory_path key"));
+
+                boolean fs = factoryHandler.changePlayer(prefVal);
             } else {
                 // For all other preferences, set the summary to the value's
                 // simple string representation.
                 preference.setSummary(stringValue);
+
+                android.util.Log.i(TAG, preference.getKey() + " - " + stringValue);
             }
             return true;
         }
@@ -167,11 +191,28 @@ public class PlayerSelectionActivity extends PreferenceActivity {
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(R.xml.pref_general);
 
+            File sdDir = Environment.getExternalStorageDirectory();
+
+            SharedPreferences.Editor prefs = PreferenceManager.getDefaultSharedPreferences(this.getActivity()).edit();
+
+            String candidate = sdDir + "/Android/data/org.xbmc.kodi/files/.kodi/userdata/playercorefactory.xml";
+            if (new File(candidate).isFile()) {
+                prefs.putString("factory_path", candidate).apply();
+            } else {
+                candidate = sdDir + "/Android/data/playercorefactory.xml";
+                if (new File(candidate).isFile()) {
+                    prefs.putString("factory_path", candidate).apply();
+                } else {
+                    prefs.putString("factory_path", "Nonexistent path").apply();
+                }
+            }
+
             // Bind the summaries of EditText/List/Dialog/Ringtone preferences
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
             bindPreferenceSummaryToValue(findPreference("kodi_player"));
+            bindPreferenceSummaryToValue(findPreference("factory_path"));
         }
     }
 }

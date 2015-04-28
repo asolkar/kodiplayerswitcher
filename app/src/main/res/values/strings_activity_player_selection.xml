@@ -3,6 +3,9 @@
     <!-- Example General settings -->
     <string name="pref_header_general">General</string>
 
+    <string name="pref_title_factory_path">playercorefactory.xml Location</string>
+    <string name="pref_default_factory_path">Local</string>
+
     <string name="pref_title_kodi_player">Kodi External Video Player</string>
     <string-array name="pref_kodi_player_list_titles">
         <item>VLC</item>
